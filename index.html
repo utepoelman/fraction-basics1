@@ -1,0 +1,743 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Fraction Basics with Nugget 1</title>
+    <meta name="description" content="Interactive worksheet: Fractions, Shading, and Equivalence with Nugget.">
+    
+    <style>
+        /* --- GLOBAL STYLES (COMPACT) --- */
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: #f0f2f5; display: flex; flex-direction: column; align-items: center; min-height: 100vh; margin: 0; padding: 10px; }
+        
+        /* Compact Header */
+        h1 { color: #333; margin: 5px 0; text-align: center; font-size: 24px; display: flex; align-items: center; justify-content: center; gap: 10px; }
+        .nugget-img { height: 50px; width: auto; } 
+        p.subtitle { color: #666; margin: 5px 0 15px 0; text-align: center; max-width: 800px; line-height: 1.4; font-size: 15px; }
+        
+        /* --- PROGRESS BAR --- */
+        .progress-wrapper { display: flex; width: 100%; max-width: 700px; margin-bottom: 10px; height: 24px; background-color: #e9ecef; border-radius: 12px; overflow: hidden; box-shadow: inset 0 1px 2px rgba(0,0,0,0.1); }
+        .progress-segment { flex: 1; display: flex; align-items: center; justify-content: center; font-size: 12px; font-weight: bold; color: #aaa; background-color: #e9ecef; border-right: 1px solid #fff; white-space: nowrap; }
+        .progress-segment:last-child { border-right: none; }
+        .progress-segment.active { background-color: #4dabf7; color: white; }
+        .progress-segment.done { background-color: #20c997; color: white; }
+
+        /* --- CONTROL BAR --- */
+        .control-bar { display: flex; gap: 8px; margin-bottom: 15px; flex-wrap: wrap; justify-content: center; }
+        .btn { padding: 6px 16px; border: none; border-radius: 20px; cursor: pointer; font-size: 13px; font-weight: 600; display: flex; align-items: center; gap: 5px; transition: transform 0.1s; }
+        .btn:active { transform: scale(0.96); }
+        .btn-help { background-color: #ffd43b; color: #495057; }
+        .btn-reset { background-color: #adb5bd; color: white; }
+        .btn-new { background-color: #74c0fc; color: white; }
+        .btn:hover { opacity: 0.9; }
+
+        /* --- GAME CONTAINER --- */
+        #game-container { 
+            background: white; padding: 20px; border-radius: 15px; 
+            box-shadow: 0 4px 10px rgba(0,0,0,0.05); width: 100%; max-width: 700px; 
+            display: flex; flex-direction: column; align-items: center; 
+            min-height: 350px; position: relative; 
+        }
+
+        /* Question Counter */
+        .question-tracker {
+            position: absolute; top: 15px; right: 20px;
+            font-size: 13px; color: #adb5bd; font-weight: bold;
+            background: #f8f9fa; padding: 4px 10px; border-radius: 10px;
+        }
+        
+        /* SHAPE DISPLAY (Compact) */
+        #shape-stage { margin-bottom: 20px; display: flex; justify-content: center; align-items: center; height: 220px; width: 100%; }
+        svg { max-height: 200px; max-width: 100%; filter: drop-shadow(0 2px 4px rgba(0,0,0,0.1)); user-select: none; }
+        .clickable-shape { cursor: pointer; transition: opacity 0.1s; }
+        .clickable-shape:hover { opacity: 0.8; stroke: #4dabf7; }
+
+        /* ANIMATION FOR HELP */
+        @keyframes blink-lines {
+            0%, 49% { opacity: 1; }
+            50%, 100% { opacity: 0; }
+        }
+        .blinking-line {
+            animation: blink-lines 1s infinite;
+        }
+
+        /* SHADING UI */
+        #shading-instructions { font-size: 20px; color: #333; margin-bottom: 15px; text-align: center; }
+        .fraction-display-text { font-size: 18px; font-weight: bold; color: #555; margin-top: 10px; padding: 8px 15px; border-radius: 8px; background: #f8f9fa; border: 2px solid #e9ecef; }
+        .fraction-display-text.match { background-color: #d3f9d8; color: #0b7285; border-color: #20c997; }
+
+        /* INPUTS */
+        .equation-row { display: flex; align-items: center; gap: 10px; font-size: 22px; color: #555; flex-wrap: wrap; justify-content: center; }
+        .fraction-group { display: flex; flex-direction: column; align-items: center; gap: 4px; position: relative; }
+        .input-box { width: 50px; height: 50px; font-size: 24px; text-align: center; border: 2px solid #ced4da; border-radius: 10px; outline: none; background-color: #f8f9fa; -moz-appearance: textfield; }
+        .input-box::-webkit-outer-spin-button, .input-box::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
+        .input-box:focus { border-color: #4dabf7; background-color: #fff; }
+        .fraction-line { width: 40px; height: 2px; background-color: #333; }
+        
+        .input-box.correct { background-color: #d3f9d8; border-color: #20c997; color: #0b7285; }
+        .input-box.wrong { background-color: #ffe3e3; border-color: #fa5252; color: #c92a2a; animation: shake 0.3s; }
+        @keyframes shake { 0% { transform: translateX(0); } 25% { transform: translateX(-5px); } 75% { transform: translateX(5px); } 100% { transform: translateX(0); } }
+
+        /* BUTTONS */
+        .nav-btn { margin-top: 20px; padding: 10px 25px; font-size: 16px; border-radius: 25px; background-color: #20c997; color: white; border: none; cursor: pointer; display: none; box-shadow: 0 4px 6px rgba(32, 201, 151, 0.3); animation: popIn 0.3s; }
+        .nav-btn:hover { background-color: #12b886; transform: translateY(-2px); }
+        @keyframes popIn { from { transform: scale(0.5); opacity: 0; } to { transform: scale(1); opacity: 1; } }
+
+        /* MODALS */
+        .modal-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 1000; display: none; justify-content: center; align-items: center; backdrop-filter: blur(3px); }
+        .modal-content { background: white; padding: 25px; border-radius: 15px; max-width: 500px; width: 90%; position: relative; box-shadow: 0 10px 25px rgba(0,0,0,0.2); animation: slideDown 0.3s ease-out; max-height: 90vh; overflow-y: auto; }
+        .close-modal { position: absolute; top: 10px; right: 15px; font-size: 24px; cursor: pointer; color: #aaa; }
+        @keyframes slideDown { from { transform: translateY(-30px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
+        
+        .nugget-help-layout { display: flex; gap: 15px; align-items: flex-start; }
+        .speech-bubble { background: #e7f5ff; padding: 15px; border-radius: 15px; border-top-left-radius: 0; position: relative; color: #495057; font-size: 15px; line-height: 1.5; }
+        .speech-bubble::before { content: ""; position: absolute; top: 0; left: -10px; border-width: 10px 10px 0 0; border-style: solid; border-color: #e7f5ff transparent transparent transparent; }
+        
+        /* Explanation SVG inside Help */
+        .help-svg-container { margin-top: 10px; text-align: center; border: 1px dashed #adb5bd; padding: 10px; border-radius: 10px; background: white; }
+
+        /* CERTIFICATE */
+        #certificate-view { display: none; width: 100%; max-width: 700px; text-align: center; background: white; padding: 30px; border-radius: 20px; border: 8px solid #ffd43b; box-shadow: 0 10px 30px rgba(0,0,0,0.15); }
+        .cert-title { font-size: 30px; color: #fab005; margin-bottom: 10px; font-family: 'Georgia', serif; letter-spacing: 2px; text-transform: uppercase; }
+        .cert-name { font-size: 28px; font-weight: bold; color: #333; border-bottom: 2px solid #ccc; padding: 0 20px; display: inline-block; margin: 10px 0; font-family: 'Courier New', monospace; }
+        .cert-footer { margin-top: 30px; display: flex; justify-content: space-between; align-items: flex-end; padding: 0 30px; }
+        .paw-print { font-size: 30px; color: #fab005; opacity: 0.6; transform: rotate(-15deg); }
+        .sign-line { border-top: 2px solid #888; width: 120px; margin-top: 5px; padding-top: 5px; font-weight: bold; color: #666; font-size: 14px; }
+    </style>
+</head>
+<body>
+
+    <h1><img src="Nugget.png" alt="Nugget" class="nugget-img">Fraction Basics with Nugget</h1>
+    <p class="subtitle" id="subtitle-text">Loading...</p>
+
+    <div class="progress-wrapper">
+        <div id="prog1" class="progress-segment active">Part 1</div>
+        <div id="prog2" class="progress-segment">Part 2</div>
+        <div id="prog3" class="progress-segment">Part 3</div>
+        <div id="prog4" class="progress-segment">Part 4</div>
+    </div>
+
+    <div class="control-bar">
+        <button class="btn btn-help" onclick="openHelp()">
+            <span>How do I do this?</span> Ask Nugget!
+        </button>
+        <button class="btn btn-reset" onclick="resetCurrentProblem()">
+            <span>&#8634;</span> Reset
+        </button>
+        <button class="btn btn-new" onclick="generateNewNumbers()">
+            <span>&#9860;</span> New Numbers
+        </button>
+    </div>
+
+    <div id="game-container">
+        <div class="question-tracker" id="q-tracker">Q: 1 / 10</div>
+
+        <div id="shading-instructions" style="display:none;"></div>
+
+        <div id="shape-stage"></div>
+
+        <div class="equation-row" id="equation-container"></div>
+
+        <div id="live-fraction-feedback" class="fraction-display-text" style="display:none;">
+            Current: 0 shaded
+        </div>
+
+        <button id="nextBtn" class="nav-btn" onclick="nextProblem()">Next Problem &rarr;</button>
+        <button id="finishPartBtn" class="nav-btn" onclick="nextPart()">Finish Part 1 &rarr;</button>
+        <button id="certBtn" class="nav-btn" onclick="openCertificateModal()">Get Certificate!</button>
+    </div>
+
+    <div id="certificate-view">
+        <img src="Nugget.png" style="height: 100px; margin-bottom: 10px;" alt="Nugget">
+        <div class="cert-title">Certificate of Mastery</div>
+        <div style="font-size: 16px; color: #555; margin: 15px 0;">
+            This certifies that<br>
+            <span id="display-name" class="cert-name">Student Name</span><br>
+            has successfully completed "Fraction Basics with Nugget".
+        </div>
+        <div style="font-size: 12px; color: #999; margin-top: 15px;">
+            Completed on: <span id="display-time"></span> <br>
+            <span id="display-code"></span>
+        </div>
+        <div class="cert-footer">
+            <div style="text-align: center;">
+                <div style="font-size: 20px; font-weight: bold; color: #444;">Nugget</div>
+                <div class="sign-line">Instructor</div>
+            </div>
+            <div style="text-align: center;">
+                <span class="paw-print">🐾</span>
+                <div class="sign-line">Signature</div>
+            </div>
+        </div>
+    </div>
+
+    <div id="helpModal" class="modal-overlay" onclick="closeModal(event, 'helpModal')">
+        <div class="modal-content" onclick="event.stopPropagation()">
+            <span class="close-modal" onclick="closeHelp()">&times;</span>
+            <h2 style="margin-top:0;">Nugget says:</h2>
+            <div class="nugget-help-layout">
+                <img src="Nugget.png" style="width: 60px; height: auto;">
+                <div class="speech-bubble" id="help-text">
+                    </div>
+            </div>
+        </div>
+    </div>
+
+    <div id="certModal" class="modal-overlay">
+        <div class="modal-content" style="text-align: center;">
+            <h2>You finished all parts!</h2>
+            <p>Enter your name to sign your certificate.</p>
+            <input type="text" id="nameInput" placeholder="Your Name" style="padding: 10px; font-size: 18px; width: 80%; margin-bottom: 20px; border-radius: 5px; border: 1px solid #ccc;">
+            <br>
+            <button class="btn btn-new" onclick="generateCertificate()" style="margin: 0 auto;">Create Certificate</button>
+        </div>
+    </div>
+
+    <script>
+        /* --- STATE MANAGEMENT --- */
+        let currentPart = 1;
+        let currentProblemIndex = 0;
+        
+        let currentTarget = { num: 0, den: 0 }; 
+        
+        let shadingState = {
+            currentVal: 0,  
+            totalVal: 0,    
+            targetFrac: {num:0, den:1}
+        };
+        
+        let validationTimeout = null;
+        
+        const totalParts = 4;
+        const problemsPerPart = 10; 
+
+        /* --- INIT --- */
+        window.onload = function() {
+            generateProblem();
+        };
+
+        /* --- CORE LOGIC --- */
+        
+        function generateProblem() {
+            // Update Tracker
+            document.getElementById('q-tracker').innerText = `Q: ${currentProblemIndex + 1} / ${problemsPerPart}`;
+
+            // Reset UI
+            document.getElementById('nextBtn').style.display = 'none';
+            document.getElementById('finishPartBtn').style.display = 'none';
+            document.getElementById('certBtn').style.display = 'none';
+            document.getElementById('equation-container').innerHTML = ''; 
+            document.getElementById('shading-instructions').style.display = 'none';
+            document.getElementById('live-fraction-feedback').style.display = 'none';
+            
+            const stage = document.getElementById('shape-stage');
+            stage.innerHTML = '';
+            shadingState.currentVal = 0; 
+
+            /* ---------------- PART 1 ---------------- */
+            if (currentPart === 1) {
+                document.getElementById('subtitle-text').innerHTML = "Part 1: Count the shaded parts. All parts are exactly the same size.";
+                updateHelpText("Part 1");
+                addInputPair(true);
+                
+                const type = getRandomInt(0, 2);
+                let den, num;
+
+                if (type === 0) { // Grid
+                    const cols = getRandomInt(2, 5); const rows = getRandomInt(1, 3);
+                    den = cols * rows; num = getRandomInt(1, den - 1);
+                    stage.appendChild(createGridSVG(rows, cols, num));
+                } 
+                else if (type === 1) { // Pie
+                    den = [3, 4, 5, 6, 8, 10][getRandomInt(0, 5)]; num = getRandomInt(1, den - 1);
+                    stage.appendChild(createPieSVG(den, num));
+                }
+                else { // Poly
+                    const isHex = Math.random() > 0.5; den = isHex ? 6 : 4; num = getRandomInt(1, den - 1);
+                    stage.appendChild(createPolygonSVG(isHex, num));
+                }
+                setupMathTarget(num, den);
+            } 
+            
+            /* ---------------- PART 2 ---------------- */
+            else if (currentPart === 2) {
+                document.getElementById('subtitle-text').innerHTML = 
+                    "Part 2: These shapes are cut into different sizes! <br><strong>Imagine dividing the big pieces</strong> so they match the small ones.";
+                updateHelpText("Part 2");
+                addInputPair(true);
+
+                // Force Specific Scenarios: 7th=Zero, 9th=Full
+                let forceZero = (currentProblemIndex === 6);
+                let forceFull = (currentProblemIndex === 8);
+
+                const type = getRandomInt(0, 2); 
+                let setup;
+                if (type === 0) setup = createNestedSquareSVG(false, forceZero, forceFull); 
+                else if (type === 1) setup = createSplitTriangleSVG(false, forceZero, forceFull);
+                else setup = createIrregularPieSVG(false, forceZero, forceFull);
+
+                stage.appendChild(setup.svg);
+                setupMathTarget(setup.num, setup.den);
+            }
+
+            /* ---------------- PART 3 ---------------- */
+            else if (currentPart === 3) {
+                document.getElementById('subtitle-text').innerHTML = "Part 3: Shade the shape to match the fraction.";
+                updateHelpText("Part 3");
+                setupShadingUI();
+
+                const denominators = [3, 4, 5, 6, 8, 10];
+                const den = denominators[getRandomInt(0, denominators.length - 1)];
+                const num = getRandomInt(1, den - 1);
+                
+                shadingState.targetFrac = { num: num, den: den };
+                shadingState.totalVal = den;
+                document.getElementById('shading-instructions').innerHTML = `Shade <strong>${num}/${den}</strong>`;
+                
+                if(Math.random() > 0.5) {
+                    const rows = (den % 5 === 0) ? 5 : (den % 4 === 0 ? 4 : (den % 3 === 0 ? 3 : 2));
+                    stage.appendChild(createInteractiveGridSVG(rows, den/rows));
+                } else {
+                    stage.appendChild(createInteractivePieSVG(den));
+                }
+                updateShadingFeedback();
+            }
+
+            /* ---------------- PART 4 ---------------- */
+            else if (currentPart === 4) {
+                document.getElementById('subtitle-text').innerHTML = "Part 4: Tricky Shading! The pieces are different sizes.<br><strong>Clicking a big piece counts more than a small piece!</strong>";
+                updateHelpText("Part 4");
+                setupShadingUI();
+
+                const type = getRandomInt(0, 2);
+                let setup;
+                if (type === 0) setup = createNestedSquareSVG(true, false, false);
+                else if (type === 1) setup = createSplitTriangleSVG(true, false, false);
+                else setup = createIrregularPieSVG(true, false, false);
+                
+                stage.appendChild(setup.svg);
+                shadingState.totalVal = setup.den; 
+
+                let validNumerators = [];
+                for(let i=1; i<shadingState.totalVal; i++) validNumerators.push(i);
+                const targetUnits = validNumerators[getRandomInt(0, validNumerators.length-1)];
+                const common = gcd(targetUnits, shadingState.totalVal);
+                const simNum = targetUnits / common;
+                const simDen = shadingState.totalVal / common;
+                
+                shadingState.targetFrac = { num: simNum, den: simDen };
+                document.getElementById('shading-instructions').innerHTML = `Shade <strong>${simNum}/${simDen}</strong>`;
+                updateShadingFeedback();
+            }
+        }
+
+        function setupMathTarget(num, den) {
+            if(den === 0) den = 1;
+            const div = gcd(num, den);
+            currentTarget = { num: num / div, den: den / div };
+        }
+        
+        function setupShadingUI() {
+            document.getElementById('shading-instructions').style.display = 'block';
+            document.getElementById('live-fraction-feedback').style.display = 'block';
+            document.getElementById('live-fraction-feedback').className = 'fraction-display-text';
+        }
+
+        /* --- SVG GENERATORS (EQUAL) --- */
+        function createGridSVG(rows, cols, shadedCount) {
+            const svg = createBaseSVG(300, 200);
+            const cellW = 280 / cols; const cellH = 180 / rows;
+            let indices = getShuffledIndices(rows*cols);
+            for(let r=0; r<rows; r++) {
+                for(let c=0; c<cols; c++) {
+                    const rect = createRect(10+c*cellW, 10+r*cellH, cellW, cellH, 
+                        indices.slice(0, shadedCount).includes(r*cols+c) ? "#74c0fc" : "white");
+                    svg.appendChild(rect);
+                }
+            }
+            return svg;
+        }
+        function createPieSVG(segments, shadedCount) {
+            const svg = createBaseSVG(200, 200);
+            drawPieSlices(svg, segments, shadedCount);
+            return svg;
+        }
+        function createPolygonSVG(isHex, shadedCount) {
+            const svg = createBaseSVG(200, 200);
+             if (isHex) {
+                const cx=100, cy=100, r=90;
+                let indices = getShuffledIndices(6);
+                for(let i=0; i<6; i++) {
+                    const a1=(i*60-90)*Math.PI/180, a2=((i+1)*60-90)*Math.PI/180;
+                    const d = `M ${cx} ${cy} L ${cx+r*Math.cos(a1)} ${cy+r*Math.sin(a1)} L ${cx+r*Math.cos(a2)} ${cy+r*Math.sin(a2)} Z`;
+                    svg.appendChild(createPath(d, indices.indexOf(i)<shadedCount ? "#74c0fc":"white"));
+                }
+            } else {
+                const p=[[100,10],[14,160],[186,160],[57,85],[143,85],[100,160]]; 
+                const paths=[`M ${p[0][0]} ${p[0][1]} L ${p[3][0]} ${p[3][1]} L ${p[4][0]} ${p[4][1]} Z`,
+                             `M ${p[1][0]} ${p[1][1]} L ${p[3][0]} ${p[3][1]} L ${p[5][0]} ${p[5][1]} Z`,
+                             `M ${p[2][0]} ${p[2][1]} L ${p[4][0]} ${p[4][1]} L ${p[5][0]} ${p[5][1]} Z`,
+                             `M ${p[3][0]} ${p[3][1]} L ${p[4][0]} ${p[4][1]} L ${p[5][0]} ${p[5][1]} Z`];
+                let indices = getShuffledIndices(4);
+                paths.forEach((d,i) => svg.appendChild(createPath(d, indices.indexOf(i)<shadedCount ? "#74c0fc":"white")));
+            }
+            return svg;
+        }
+
+        /* --- SVG GENERATORS (UNEQUAL) --- */
+        function createNestedSquareSVG(interactive, forceZero, forceFull) {
+            const svg = createBaseSVG(200, 200);
+            svg.appendChild(createRect(10,10,180,180,"none","#333",3)); 
+
+            const splitIndex = getRandomInt(0,3);
+            const coords = [[10,10],[100,10],[10,100],[100,100]];
+            
+            let quadStates = []; 
+            let splitShadeCount = 0;
+            
+            for(let i=0; i<4; i++) {
+                if(interactive || forceZero) {
+                    quadStates.push(0);
+                } else if (forceFull) {
+                    quadStates.push(i===splitIndex ? 4 : 2); 
+                    if(i===splitIndex) splitShadeCount = 4;
+                } else {
+                    if(i===splitIndex) {
+                        splitShadeCount = getRandomInt(1,3); 
+                        quadStates.push(3); 
+                    } else {
+                        quadStates.push(Math.random()>0.5 ? 2 : 0);
+                    }
+                }
+            }
+            
+            if(!interactive && !forceZero && !forceFull) {
+                let totalS = 0;
+                quadStates.forEach((s, idx) => { if(idx===splitIndex) totalS += splitShadeCount; else if(s===2) totalS += 4; });
+                if(totalS === 0) quadStates[(splitIndex+1)%4] = 2; 
+                if(totalS === 16) quadStates[(splitIndex+1)%4] = 0;
+            }
+            
+            let totalVisualShade = 0;
+            for(let i=0; i<4; i++) {
+                if(i === splitIndex) {
+                    let localCount = (quadStates[i]===4) ? 4 : (quadStates[i]===0 ? 0 : splitShadeCount);
+                    totalVisualShade += localCount;
+                    for(let s=0; s<4; s++) {
+                        const sx = coords[i][0] + (s%2)*45; const sy = coords[i][1] + Math.floor(s/2)*45;
+                        const isS = s < localCount;
+                        const r = createRect(sx, sy, 45, 45, isS?"#74c0fc":"white");
+                        if(interactive) makeClickable(r, 1);
+                        svg.appendChild(r);
+                    }
+                } else {
+                    let isS = (quadStates[i] === 2);
+                    if(isS) totalVisualShade += 4;
+                    const r = createRect(coords[i][0], coords[i][1], 90, 90, isS?"#74c0fc":"white");
+                    if(interactive) makeClickable(r, 4);
+                    else addGhostLinesSquare(svg, coords[i][0], coords[i][1]);
+                    svg.appendChild(r);
+                }
+            }
+            return { svg: svg, num: totalVisualShade, den: 16 };
+        }
+
+        function createSplitTriangleSVG(interactive, forceZero, forceFull) {
+            const svg = createBaseSVG(200, 200);
+            const pTop=[100,10], pBotL=[10,180], pBotR=[190,180], mLeft=[55,95], mRight=[145,95], mBot=[100,180];
+            const dTop=`M ${pTop[0]},${pTop[1]} L ${mRight[0]},${mRight[1]} L ${mLeft[0]},${mLeft[1]} Z`;
+            const dRhomb=`M ${mLeft[0]},${mLeft[1]} L ${mRight[0]},${mRight[1]} L ${mBot[0]},${mBot[1]} L ${pBotL[0]},${pBotL[1]} Z`;
+            const dRight=`M ${mRight[0]},${mRight[1]} L ${pBotR[0]},${pBotR[1]} L ${mBot[0]},${mBot[1]} Z`;
+            
+            let s1=false, s2=false, s3=false; 
+            if(forceFull) { s1=true; s2=true; s3=true; }
+            else if(!interactive && !forceZero) {
+                s1 = Math.random()>0.5; s2 = Math.random()>0.5; s3 = Math.random()>0.5;
+                let sum = (s1?1:0)+(s2?2:0)+(s3?1:0);
+                if(sum===0) s1=true; if(sum===4) s3=false;
+            }
+            
+            let total = (s1?1:0)+(s2?2:0)+(s3?1:0);
+            
+            const p1 = createPath(dTop, s1?"#74c0fc":"white");
+            if(interactive) makeClickable(p1, 1);
+            svg.appendChild(p1);
+
+            const p2 = createPath(dRhomb, s2?"#74c0fc":"white");
+            if(interactive) makeClickable(p2, 2);
+            else {
+                svg.appendChild(createLine(mLeft[0],mLeft[1],mBot[0],mBot[1]));
+            }
+            svg.appendChild(p2);
+
+            const p3 = createPath(dRight, s3?"#74c0fc":"white");
+            if(interactive) makeClickable(p3, 1);
+            svg.appendChild(p3);
+
+            return { svg: svg, num: total, den: 4 };
+        }
+
+        function createIrregularPieSVG(interactive, forceZero, forceFull) {
+            const svg = createBaseSVG(200, 200);
+            const cx=100, cy=100, r=90;
+            let sBig=false, sSmall=[false, false, false];
+            
+            if(forceFull) { sBig=true; sSmall=[true,true,true]; }
+            else if(!interactive && !forceZero) {
+                sBig = Math.random()>0.5;
+                sSmall = [Math.random()>0.5, Math.random()>0.5, Math.random()>0.5];
+                let sum = (sBig?3:0) + sSmall.filter(Boolean).length;
+                if(sum===0) sBig=true; if(sum===6) sSmall[0]=false;
+            }
+            
+            let total = (sBig?3:0) + sSmall.filter(Boolean).length;
+            const dBig = `M ${cx} ${cy} L 100 10 A 90 90 0 0 0 100 190 Z`;
+            const pBig = createPath(dBig, sBig?"#74c0fc":"white");
+            if(interactive) makeClickable(pBig, 3);
+            else [-150, 150].forEach(deg => addGhostLineRadial(svg, cx, cy, r, deg));
+            svg.appendChild(pBig);
+
+            const angles = [-90, -30, 30, 90];
+            for(let i=0; i<3; i++) {
+                const a1=angles[i], a2=angles[i+1];
+                const d = `M ${cx} ${cy} L ${cx+r*Math.cos(a1*Math.PI/180)} ${cy+r*Math.sin(a1*Math.PI/180)} A ${r} ${r} 0 0 1 ${cx+r*Math.cos(a2*Math.PI/180)} ${cy+r*Math.sin(a2*Math.PI/180)} Z`;
+                const p = createPath(d, sSmall[i]?"#74c0fc":"white");
+                if(interactive) makeClickable(p, 1);
+                svg.appendChild(p);
+            }
+            return { svg: svg, num: total, den: 6 };
+        }
+
+        /* --- INTERACTIVE SVG --- */
+        function createInteractiveGridSVG(rows, cols) {
+            const svg = createBaseSVG(300, 200);
+            const cellW = 280/cols, cellH = 180/rows;
+            for(let r=0; r<rows; r++) { for(let c=0; c<cols; c++) {
+                    const rect = createRect(10+c*cellW, 10+r*cellH, cellW, cellH, "white");
+                    makeClickable(rect, 1); svg.appendChild(rect);
+            }} return svg;
+        }
+        function createInteractivePieSVG(segments) {
+            const svg = createBaseSVG(200, 200);
+            const cx=100, cy=100, r=90;
+            for(let i=0; i<segments; i++) {
+                const a1=(i*360/segments)-90, a2=((i+1)*360/segments)-90;
+                const d=`M ${cx} ${cy} L ${cx+r*Math.cos(a1*Math.PI/180)} ${cy+r*Math.sin(a1*Math.PI/180)} A ${r} ${r} 0 0 1 ${cx+r*Math.cos(a2*Math.PI/180)} ${cy+r*Math.sin(a2*Math.PI/180)} Z`;
+                const p = createPath(d, "white"); makeClickable(p, 1); svg.appendChild(p);
+            } return svg;
+        }
+
+        /* --- SVG HELPERS --- */
+        function createBaseSVG(w, h) {
+            const svg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
+            svg.setAttribute("viewBox", `0 0 ${w} ${h}`); return svg;
+        }
+        function createRect(x,y,w,h,fill,stroke="#333",sw=3) {
+            const r = document.createElementNS("http://www.w3.org/2000/svg", "rect");
+            r.setAttribute("x",x); r.setAttribute("y",y); r.setAttribute("width",w); r.setAttribute("height",h);
+            r.setAttribute("fill",fill); r.setAttribute("stroke",stroke); r.setAttribute("stroke-width",sw); return r;
+        }
+        function createPath(d, fill, stroke="#333", sw=2) {
+            const p = document.createElementNS("http://www.w3.org/2000/svg", "path");
+            p.setAttribute("d",d); p.setAttribute("fill",fill); p.setAttribute("stroke",stroke); p.setAttribute("stroke-width",sw); return p;
+        }
+        function addGhostLinesSquare(svg, x, y) {
+            svg.appendChild(createLine(x+45, y, x+45, y+90)); svg.appendChild(createLine(x, y+45, x+90, y+45));
+        }
+        function addGhostLineRadial(svg, cx, cy, r, deg) {
+            const rad = deg*Math.PI/180; svg.appendChild(createLine(cx, cy, cx+r*Math.cos(rad), cy+r*Math.sin(rad)));
+        }
+        function createLine(x1,y1,x2,y2) {
+            const l = document.createElementNS("http://www.w3.org/2000/svg", "line");
+            l.setAttribute("x1",x1); l.setAttribute("y1",y1); l.setAttribute("x2",x2); l.setAttribute("y2",y2);
+            l.setAttribute("stroke","#888"); l.setAttribute("stroke-dasharray","5,5"); return l;
+        }
+        function makeClickable(el, weight) {
+            el.setAttribute("class", "clickable-shape"); el.dataset.weight = weight; el.dataset.selected = "false";
+            el.onclick = function() {
+                const isSel = this.dataset.selected === "true"; const w = parseInt(this.dataset.weight);
+                if(isSel) { this.dataset.selected="false"; this.setAttribute("fill", "white"); shadingState.currentVal -= w; } 
+                else { this.dataset.selected="true"; this.setAttribute("fill", "#74c0fc"); shadingState.currentVal += w; }
+                updateShadingFeedback();
+            };
+        }
+
+        /* --- LOGIC --- */
+        function updateShadingFeedback() {
+            const current = shadingState.currentVal; const total = shadingState.totalVal;
+            const display = document.getElementById('live-fraction-feedback');
+            display.innerHTML = `You have shaded: ${current} / ${total}`;
+            if (Math.abs((current/total) - (shadingState.targetFrac.num/shadingState.targetFrac.den)) < 0.0001) {
+                display.innerHTML += " &nbsp; &#10004; Match!"; display.className = "fraction-display-text match"; handleCorrectAnswer();
+            } else { display.className = "fraction-display-text"; 
+                if(document.getElementById('nextBtn').style.display !== 'none') document.getElementById('nextBtn').style.display = 'none'; 
+            }
+        }
+        
+        function addInputPair(isFirst) {
+            const container = document.getElementById('equation-container');
+            if(!isFirst) { const eq = document.createElement('div'); eq.innerHTML = '='; eq.style.fontWeight='bold'; container.appendChild(eq); }
+            const group = document.createElement('div'); group.className = 'fraction-group'; group.dataset.solved = "false";
+            const inNum = document.createElement('input'); inNum.type = 'number'; inNum.className = 'input-box'; inNum.onkeyup = (e) => handleTyping(e.target, group);
+            const line = document.createElement('div'); line.className = 'fraction-line';
+            const inDen = document.createElement('input'); inDen.type = 'number'; inDen.className = 'input-box'; inDen.onkeyup = (e) => handleTyping(e.target, group);
+            group.appendChild(inNum); group.appendChild(line); group.appendChild(inDen); container.appendChild(group);
+            setTimeout(() => inNum.focus(), 100);
+        }
+
+        function handleTyping(input, group) {
+            if(group.dataset.solved === "true") return; 
+            const inputs = group.querySelectorAll('input');
+            inputs.forEach(i => { if(i.classList.contains('wrong')) i.className = 'input-box'; }); 
+            const userNum = parseInt(inputs[0].value), userDen = parseInt(inputs[1].value);
+            
+            if(validationTimeout) clearTimeout(validationTimeout);
+            validationTimeout = setTimeout(() => {
+                if(group.dataset.solved === "true") return; 
+                if (!isNaN(userNum) && !isNaN(userDen)) checkCorrectness(userNum, userDen, inputs, group, true);
+            }, 1000); 
+        }
+
+        function checkCorrectness(userNum, userDen, inputs, group, showWrong = false) {
+            const userVal = userNum / userDen;
+            const targetVal = currentTarget.num / currentTarget.den; 
+            
+            if (Math.abs(userVal - targetVal) < 0.00001) {
+                group.dataset.solved = "true"; 
+                inputs.forEach(i => { i.className = 'input-box correct'; i.disabled = true; }); 
+                handleCorrectAnswer();
+                return true;
+            } else {
+                if(showWrong) inputs.forEach(i => i.className = 'input-box wrong');
+                return false;
+            }
+        }
+
+        function handleCorrectAnswer() {
+            if (currentProblemIndex < problemsPerPart - 1) {
+                document.getElementById('nextBtn').style.display = 'inline-block';
+            } else {
+                let btn = document.getElementById('finishPartBtn');
+                btn.style.display = 'inline-block';
+                if(currentPart < totalParts) btn.innerHTML = `Well done! Start Part ${currentPart + 1} &rarr;`;
+                else { btn.style.display='none'; document.getElementById('certBtn').style.display = 'inline-block'; }
+            }
+        }
+        
+        function nextProblem() { currentProblemIndex++; generateProblem(); }
+        function nextPart() {
+            document.getElementById(`prog${currentPart}`).className = 'progress-segment done';
+            currentPart++; currentProblemIndex = 0;
+            document.getElementById(`prog${currentPart}`).classList.add('active');
+            generateProblem();
+        }
+        
+        function generateNewNumbers() {
+            currentProblemIndex = 0; // Restart part
+            generateProblem();
+        }
+        
+        function resetCurrentProblem() {
+            if (currentPart >= 3) {
+                shadingState.currentVal = 0;
+                document.querySelectorAll('.clickable-shape').forEach(el => { el.setAttribute('fill', 'white'); el.dataset.selected = "false"; });
+                updateShadingFeedback();
+            } else { document.getElementById('equation-container').innerHTML = ''; addInputPair(true); }
+        }
+        
+        function updateHelpText(part) {
+            const h = document.getElementById('help-text');
+            if(part === "Part 1") h.innerHTML = `<p><strong>Numerator (Top):</strong> Count shaded pieces.<br><strong>Denominator (Bottom):</strong> Count ALL pieces.</p>`;
+            else if(part === "Part 2") {
+                h.innerHTML = `
+                    <p><strong>Just counting the pieces doesn't give the correct answer if the pieces are different in size.</strong></p>
+                    <p>We must imagine cutting the big pieces up so they are all the same size!</p>
+                    <div class="help-svg-container" id="expl-svg-container"></div>
+                    <p><strong>Example:</strong> We cut the full left half into 4 pieces to match the small ones. Now we have 8 pieces in total.</p>
+                    <p>Count them: 4 (left) + 3 (right) = 7. Total is <strong>7/8</strong>.</p>
+                    <hr style="border:0; border-top:1px solid #eee; margin:10px 0;">
+                    <p><strong>Special Cases:</strong><br>Nothing Shaded? Top is 0.<br>All Shaded? Top equals Bottom.</p>
+                `;
+                setTimeout(() => {
+                    const c = document.getElementById('expl-svg-container');
+                    if(c) { c.innerHTML = ''; c.appendChild(createAnimatedExplanationSVG()); }
+                }, 100);
+            }
+            else if(part === "Part 3") h.innerHTML = `<p>Click pieces to turn them blue. Make the number of blue pieces match the top number!</p>`;
+            else h.innerHTML = `<p><strong>Tricky Shading:</strong><br>Big pieces count for more!<br>Watch the "You have shaded" number change as you click.</p>`;
+        }
+        
+        function createAnimatedExplanationSVG() {
+            const svg = createBaseSVG(120, 160);
+            
+            // Left Side (Big Half) - Shaded
+            svg.appendChild(createRect(0,0,60,160,"#74c0fc","#333",2));
+            
+            // Right Side (Split into 4) - 3 Shaded, 1 Empty
+            svg.appendChild(createRect(60,0,60,40,"#74c0fc","#333",2));
+            svg.appendChild(createRect(60,40,60,40,"#74c0fc","#333",2));
+            svg.appendChild(createRect(60,80,60,40,"#74c0fc","#333",2));
+            svg.appendChild(createRect(60,120,60,40,"white","#333",2));
+            
+            // Dashed Lines on Left Side (Animated)
+            const l1 = createLine(0,40,60,40);
+            l1.setAttribute("stroke", "red"); l1.setAttribute("stroke-dasharray", "5,5"); l1.setAttribute("stroke-width", "2"); l1.setAttribute("class", "blinking-line");
+            
+            const l2 = createLine(0,80,60,80);
+            l2.setAttribute("stroke", "red"); l2.setAttribute("stroke-dasharray", "5,5"); l2.setAttribute("stroke-width", "2"); l2.setAttribute("class", "blinking-line");
+            
+            const l3 = createLine(0,120,60,120);
+            l3.setAttribute("stroke", "red"); l3.setAttribute("stroke-dasharray", "5,5"); l3.setAttribute("stroke-width", "2"); l3.setAttribute("class", "blinking-line");
+            
+            svg.appendChild(l1); svg.appendChild(l2); svg.appendChild(l3);
+            
+            return svg;
+        }
+        
+        function createGhostLine(x1,y1,x2,y2) {
+             const l = document.createElementNS("http://www.w3.org/2000/svg", "line");
+             l.setAttribute("x1",x1); l.setAttribute("y1",y1); l.setAttribute("x2",x2); l.setAttribute("y2",y2);
+             l.setAttribute("stroke","red"); l.setAttribute("stroke-width","2"); l.setAttribute("stroke-dasharray","4,4");
+             return l;
+        }
+
+        /* --- UTILS --- */
+        function getRandomInt(min, max) { return Math.floor(Math.random() * (max - min + 1)) + min; }
+        function gcd(a, b) { return b === 0 ? a : gcd(b, a % b); }
+        function getShuffledIndices(len) {
+            let arr = Array.from({length: len}, (_, i) => i);
+            for (let i = arr.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [arr[i], arr[j]] = [arr[j], arr[i]]; }
+            return arr;
+        }
+        function openHelp() { document.getElementById('helpModal').style.display = 'flex'; }
+        function closeHelp() { document.getElementById('helpModal').style.display = 'none'; }
+        function openCertificateModal() { document.getElementById('certModal').style.display = 'flex'; }
+        function closeModal(e, id) { if(e.target.id === id) document.getElementById(id).style.display = 'none'; }
+        function generateCertificate() {
+            const name = document.getElementById('nameInput').value.trim();
+            if(!name) { alert("Please enter your name."); return; }
+            document.getElementById('display-name').innerText = name;
+            document.getElementById('display-time').innerText = new Date().toLocaleString();
+            document.getElementById('display-code').innerText = "Code: " + Math.floor(1000 + Math.random() * 9000);
+            document.getElementById('certModal').style.display = 'none';
+            document.getElementById('game-container').style.display = 'none';
+            document.querySelector('.progress-wrapper').style.display = 'none';
+            document.querySelector('.control-bar').style.display = 'none';
+            document.querySelector('.subtitle').style.display = 'none';
+            document.querySelector('h1').innerText = "Congratulations!";
+            document.getElementById('certificate-view').style.display = 'block';
+            for(let i=1; i<=totalParts; i++) document.getElementById(`prog${i}`).className = 'progress-segment done';
+        }
+
+        // Helper for creating shapes with weight for Part 4
+        function drawPieSlices(svg, segments, shadedCount) {
+             const cx=100, cy=100, r=90;
+             for(let i=0; i<segments; i++) {
+                const a1=(i*360/segments)-90, a2=((i+1)*360/segments)-90;
+                const d=`M ${cx} ${cy} L ${cx+r*Math.cos(a1*Math.PI/180)} ${cy+r*Math.sin(a1*Math.PI/180)} A ${r} ${r} 0 0 1 ${cx+r*Math.cos(a2*Math.PI/180)} ${cy+r*Math.sin(a2*Math.PI/180)} Z`;
+                svg.appendChild(createPath(d, i<shadedCount?"#74c0fc":"white"));
+             }
+        }
+    </script>
+</body>
+</html>
